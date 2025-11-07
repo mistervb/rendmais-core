@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Parent project -->
+    <groupId>br.com.rendmais</groupId>
+    <artifactId>rendmais-core</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>RendMais Core</name>
+    <description>Projeto multi-módulos para rede P2P do RendMais</description>
+
+    <!-- Versões globais para todos os módulos -->
+    <properties>
+        <java.version>21</java.version>
+
+        <!-- Versionamento centralizado -->
+        <slf4j.version>2.0.13</slf4j.version>
+        <bouncy.version>1.78</bouncy.version>
+        <netty.version>4.2.7.Final</netty.version>
+        <gson.version>2.10.1</gson.version>
+        <lombok.version>1.18.32</lombok.version>
+    </properties>
+
+    <!-- Dependências visíveis para todos os módulos -->
+    <dependencyManagement>
+        <dependencies>
+
+            <!-- Log -->
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
+
+            <!-- Criptografia -->
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcprov-jdk18on</artifactId>
+                <version>${bouncy.version}</version>
+            </dependency>
+
+            <!-- Comunicação P2P (Netty) -->
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-all</artifactId>
+                <version>${netty.version}</version>
+            </dependency>
+
+            <!-- JSON Adapter -->
+            <dependency>
+                <groupId>com.google.code.gson</groupId>
+                <artifactId>gson</artifactId>
+                <version>${gson.version}</version>
+            </dependency>
+
+            <!-- Lombok (apenas provided no código) -->
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+        </dependencies>
+    </dependencyManagement>
+
+    <!-- Módulos -->
+    <modules>
+        <module>rendmais-common</module>
+        <module>rendmais-p2p</module>
+        <module>rendmais-task-engine</module>
+        <module>rendmais-wallet</module>
+        <module>rendmais-testkit</module>
+        <module>rendmais-node</module>
+    </modules>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+
+                <!-- Compilador Java -->
+                <plugin>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.12.1</version>
+                    <configuration>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
+                        <release>${java.version}</release>
+                    </configuration>
+                </plugin>
+
+                <!-- Para rodar testes -->
+                <plugin>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>3.2.5</version>
+                </plugin>
+
+                <!-- Para empacotar -->
+                <plugin>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>3.4.1</version>
+                </plugin>
+
+            </plugins>
+        </pluginManagement>
+    </build>
+
+</project>
