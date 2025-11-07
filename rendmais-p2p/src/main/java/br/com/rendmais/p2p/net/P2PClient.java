@@ -5,6 +5,7 @@ import br.com.rendmais.p2p.messaging.MessageRouter;
 import br.com.rendmais.p2p.net.codec.JsonMessageDecoder;
 import br.com.rendmais.p2p.net.codec.JsonMessageEncoder;
 import br.com.rendmais.p2p.net.handler.PeerChannelHandler;
+import br.com.rendmais.p2p.protocol.HandshakeHandler;
 import br.com.rendmais.p2p.registry.PeerRegistry;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
@@ -23,6 +24,7 @@ public class P2PClient {
 
     private static final Logger log = LoggerFactory.getLogger(P2PClient.class);
 
+    private final HandshakeHandler handshakeHandler;
     private final MessageRouter router;
     private final PeerRegistry registry;
     private final EventLoopGroup group = new NioEventLoopGroup();
@@ -32,10 +34,11 @@ public class P2PClient {
     private volatile Channel channel;
     private final AtomicInteger reconnectAttempts = new AtomicInteger(0);
 
-    public P2PClient(String host, int port, MessageRouter router, PeerRegistry registry) {
+    public P2PClient(String host, int port, MessageRouter router, PeerRegistry registry, HandshakeHandler handshakeHandler) {
         this.router = router;
         this.registry = registry;
         this.remoteAddress = new InetSocketAddress(host, port);
+        this.handshakeHandler = handshakeHandler;
 
         bootstrap = new Bootstrap();
         bootstrap.group(group)
@@ -49,7 +52,7 @@ public class P2PClient {
                         p.addLast(new JsonMessageDecoder());
                         p.addLast(new LengthFieldPrepender(4));
                         p.addLast(new JsonMessageEncoder());
-                        p.addLast(new PeerChannelHandler(router, registry));
+                        p.addLast(new PeerChannelHandler(router, registry, handshakeHandler));
                     }
                 });
     }
@@ -66,6 +69,9 @@ public class P2PClient {
                 channel = future.channel();
                 reconnectAttempts.set(0);
                 log.info("Connected to peer {}", remoteAddress);
+                // send handshake
+                SignedMessage myHandshake = handshakeHandler.buildSignedHandshake();
+                channel.writeAndFlush(myHandshake);
             } else {
                 int attempts = reconnectAttempts.incrementAndGet();
                 long delay = Math.min(60, 1 << Math.min(attempts, 6)); // exponential backoff up to 60s

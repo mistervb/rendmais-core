@@ -118,4 +118,5 @@ reports/
 __pycache__/
 *.pyc
 
-.rendmais
+.rendmais/
+doc/

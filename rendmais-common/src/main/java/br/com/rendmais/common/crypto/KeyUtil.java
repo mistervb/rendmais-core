@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.*;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Arrays;
 import java.util.Base64;
 
 public final class KeyUtil {
@@ -85,6 +86,19 @@ public final class KeyUtil {
             throw new RuntimeException("Failed to save keypair", e);
         }
     }
+
+    public static String publicKeyFingerprint(PublicKey publicKey) {
+        try {
+            MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+            byte[] hash = sha256.digest(publicKey.getEncoded());
+            // reduz para 20 bytes, fica mais curto mas ainda seguro
+            byte[] shortHash = Arrays.copyOf(hash, 20);
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(shortHash);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 
     public static KeyPair loadKeyPairFromFile(Path path) {
         try (DataInputStream in = new DataInputStream(new FileInputStream(path.toFile()))) {

@@ -7,11 +7,16 @@ import br.com.rendmais.common.enums.MessageType;
 import br.com.rendmais.p2p.messaging.MessageRouter;
 import br.com.rendmais.p2p.net.P2PClient;
 import br.com.rendmais.p2p.net.P2PServer;
+import br.com.rendmais.p2p.protocol.HandshakeHandler;
 import br.com.rendmais.p2p.registry.PeerRegistry;
 import br.com.rendmais.p2p.identity.PeerIdentity;
 import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.nio.charset.StandardCharsets;
+import java.security.PublicKey;
+import java.util.Base64;
 
 public class P2PNodeBootstrap {
 
@@ -31,8 +36,25 @@ public class P2PNodeBootstrap {
         router.registerHandler(MessageType.HANDSHAKE, msg -> {
             try {
                 PeerInfo info = new com.google.gson.Gson().fromJson(msg.getPayload(), PeerInfo.class);
-                registry.addPeer(info);
-                log.info("Handshake received: {}", info.getNodeId());
+
+                // Recupera a chave pública do peer
+                PublicKey peerPublicKey = KeyUtil.publicKeyFromBase64(info.getPublicKeyBase64());
+
+                // Verifica assinatura do payload
+                boolean verified = KeyUtil.verify(peerPublicKey,
+                        msg.getPayload().getBytes(StandardCharsets.UTF_8),
+                        Base64.getDecoder().decode(msg.getSignature())
+                );
+
+                if (!verified) {
+                    log.warn("Handshake signature INVALID for peer {}", info.getNodeId());
+                    return;
+                }
+
+                // Agora podemos registrar com chave pública de verdade
+                registry.addOrUpdatePeer(info, peerPublicKey);
+                log.info("Handshake accepted: {}", info.getNodeId());
+
             } catch (Exception e) {
                 log.warn("Invalid handshake payload: {}", e.getMessage());
             }
@@ -49,7 +71,8 @@ public class P2PNodeBootstrap {
     }
 
     public P2PClient connectTo(String host, int port) {
-        P2PClient client = new P2PClient(host, port, router, registry);
+        HandshakeHandler handshakeHandler = new HandshakeHandler(registry, identity);
+        P2PClient client = new P2PClient(host, port, router, registry, handshakeHandler);
         client.connect();
         // after connect, send handshake
         // we delay a bit to allow connection; in production, use FutureListener
