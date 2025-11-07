@@ -1,0 +1,119 @@
+############################
+# GENERAL
+############################
+*.log
+*.tmp
+*.temp
+*.swp
+*.lock
+*.bak
+*.old
+*.orig
+.DS_Store
+Thumbs.db
+
+############################
+# MAVEN / BUILD OUTPUT
+############################
+target/
+build/
+out/
+dependency-reduced-pom.xml
+release.properties
+
+############################
+# JAVA
+############################
+*.class
+*.jar
+*.war
+*.ear
+
+############################
+# OS TEMP FILES
+############################
+*.out
+*.pid
+*.seed
+
+############################
+# IDEs
+############################
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Eclipse
+.project
+.classpath
+.settings/
+
+# NetBeans
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# VSCode
+.vscode/
+
+############################
+# NODE / FRONT-END (futuro)
+############################
+node_modules/
+dist/
+*.map
+
+############################
+# SECURITY / SECRETS
+############################
+# Keys / Certificates
+*.pem
+*.key
+*.crt
+*.pfx
+*.p12
+keystore.jks
+truststore.jks
+
+# Env files
+.env
+.env.local
+.env.*.local
+application-secret.properties
+application-*.yml
+
+############################
+# DOCKER / CONTAINERS
+############################
+docker-data/
+docker-volumes/
+*.tar
+
+############################
+# TEST FILES
+############################
+test-output/
+.jacoco/
+coverage/
+reports/
+
+############################
+# GRAALVM / NATIVE IMAGE
+############################
+*.native-image/
+*.native/
+*.so
+*.dll
+*.dylib
+
+############################
+# PYTHON TOOLING (caso use scripts)
+############################
+__pycache__/
+*.pyc
