@@ -1,4 +1,4 @@
-package br.com.rendmais.p2p.messaging;
+package br.com.rendmais.common.enums;
 
 public enum MessageType {
     HANDSHAKE,

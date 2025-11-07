@@ -1,9 +1,10 @@
 package br.com.rendmais.p2p;
 
+import br.com.rendmais.common.crypto.KeyUtil;
 import br.com.rendmais.common.dto.PeerInfo;
-import br.com.rendmais.p2p.messaging.Message;
+import br.com.rendmais.common.dto.SignedMessage;
+import br.com.rendmais.common.enums.MessageType;
 import br.com.rendmais.p2p.messaging.MessageRouter;
-import br.com.rendmais.p2p.messaging.MessageType;
 import br.com.rendmais.p2p.net.P2PClient;
 import br.com.rendmais.p2p.net.P2PServer;
 import br.com.rendmais.p2p.registry.PeerRegistry;
@@ -53,10 +54,17 @@ public class P2PNodeBootstrap {
         // after connect, send handshake
         // we delay a bit to allow connection; in production, use FutureListener
         new Thread(() -> {
-            try { Thread.sleep(500); } catch (InterruptedException ignored) {}
             PeerInfo myInfo = identity.getInfo();
-            Message handshake = new Message(MessageType.HANDSHAKE, new com.google.gson.Gson().toJson(myInfo));
-            client.send(handshake);
+            String payload = new com.google.gson.Gson().toJson(myInfo);
+            byte[] signatureBytes = KeyUtil.sign(identity.getKeyPair().getPrivate(), payload.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            String signatureBase64 = java.util.Base64.getEncoder().encodeToString(signatureBytes);
+
+            SignedMessage signed = SignedMessage.builder()
+                    .type(MessageType.HANDSHAKE)
+                    .payload(payload)
+                    .signature(signatureBase64)
+                    .build();
+            client.send(signed);
         }).start();
         return client;
     }

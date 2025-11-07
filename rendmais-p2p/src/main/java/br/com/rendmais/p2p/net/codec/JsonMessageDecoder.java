@@ -1,6 +1,6 @@
 package br.com.rendmais.p2p.net.codec;
 
-import br.com.rendmais.p2p.messaging.Message;
+import br.com.rendmais.common.dto.SignedMessage;
 import com.google.gson.Gson;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -20,7 +20,7 @@ public class JsonMessageDecoder extends ByteToMessageDecoder {
         byte[] bytes = new byte[readable];
         in.readBytes(bytes);
         String json = new String(bytes, StandardCharsets.UTF_8);
-        Message msg = gson.fromJson(json, Message.class);
+        SignedMessage msg = gson.fromJson(json, SignedMessage.class);
         out.add(msg);
     }
 }

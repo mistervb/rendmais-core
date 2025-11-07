@@ -1,6 +1,6 @@
 package br.com.rendmais.p2p.net.handler;
 
-import br.com.rendmais.p2p.messaging.Message;
+import br.com.rendmais.common.dto.SignedMessage;
 import br.com.rendmais.p2p.messaging.MessageRouter;
 import br.com.rendmais.p2p.registry.PeerRegistry;
 import io.netty.channel.ChannelHandlerContext;
@@ -8,7 +8,7 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PeerChannelHandler extends SimpleChannelInboundHandler<Message> {
+public class PeerChannelHandler extends SimpleChannelInboundHandler<SignedMessage> {
 
     private static final Logger log = LoggerFactory.getLogger(PeerChannelHandler.class);
 
@@ -28,7 +28,7 @@ public class PeerChannelHandler extends SimpleChannelInboundHandler<Message> {
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, Message msg) throws Exception {
+    protected void channelRead0(ChannelHandlerContext ctx, SignedMessage msg) throws Exception {
         log.debug("Received message from {} type={}", ctx.channel().remoteAddress(), msg.getType());
         router.route(msg);
     }

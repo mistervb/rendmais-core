@@ -117,3 +117,5 @@ reports/
 ############################
 __pycache__/
 *.pyc
+
+.rendmais

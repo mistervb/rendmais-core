@@ -1,6 +1,6 @@
 package br.com.rendmais.p2p.net;
 
-import br.com.rendmais.p2p.messaging.Message;
+import br.com.rendmais.common.dto.SignedMessage;
 import br.com.rendmais.p2p.messaging.MessageRouter;
 import br.com.rendmais.p2p.net.codec.JsonMessageDecoder;
 import br.com.rendmais.p2p.net.codec.JsonMessageEncoder;
@@ -75,7 +75,7 @@ public class P2PClient {
         });
     }
 
-    public void send(Message msg) {
+    public void send(SignedMessage msg) {
         if (channel != null && channel.isActive()) {
             channel.writeAndFlush(msg);
         } else {

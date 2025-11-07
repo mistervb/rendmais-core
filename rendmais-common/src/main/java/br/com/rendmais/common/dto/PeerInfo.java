@@ -11,4 +11,6 @@ public class PeerInfo {
     private String nodeId;
     private String address;
     private int port;
+    // opcional no registro inicial, mas presente no handshake
+    private String publicKeyBase64;
 }
