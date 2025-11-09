@@ -1,9 +1,11 @@
 package br.com.rendmais.p2p.net;
 
+import br.com.rendmais.p2p.discovery.PeerDiscoveryService;
 import br.com.rendmais.p2p.messaging.MessageRouter;
 import br.com.rendmais.p2p.net.codec.JsonMessageDecoder;
 import br.com.rendmais.p2p.net.codec.JsonMessageEncoder;
 import br.com.rendmais.p2p.net.handler.PeerChannelHandler;
+import br.com.rendmais.p2p.protocol.HandshakeHandler;
 import br.com.rendmais.p2p.registry.PeerRegistry;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
@@ -22,15 +24,23 @@ public class P2PServer {
     private final int port;
     private final MessageRouter router;
     private final PeerRegistry registry;
+    private final ConnectionPool connectionPool;
+    private final PeerDiscoveryService discoveryService;
+    private final HandshakeHandler handshakeHandler;
 
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
     private Channel serverChannel;
 
-    public P2PServer(int port, MessageRouter router, PeerRegistry registry) {
+    public P2PServer(int port, MessageRouter router, PeerRegistry registry, 
+                     ConnectionPool connectionPool, PeerDiscoveryService discoveryService,
+                     HandshakeHandler handshakeHandler) {
         this.port = port;
         this.router = router;
         this.registry = registry;
+        this.connectionPool = connectionPool;
+        this.discoveryService = discoveryService;
+        this.handshakeHandler = handshakeHandler;
     }
 
     public void start() throws InterruptedException {
@@ -42,6 +52,7 @@ public class P2PServer {
                 .channel(NioServerSocketChannel.class)
                 .option(ChannelOption.SO_BACKLOG, 128)
                 .childOption(ChannelOption.SO_KEEPALIVE, true)
+                .childOption(ChannelOption.TCP_NODELAY, true)
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     public void initChannel(SocketChannel ch) {
@@ -51,7 +62,10 @@ public class P2PServer {
                         p.addLast(new JsonMessageDecoder());
                         p.addLast(new LengthFieldPrepender(4));
                         p.addLast(new JsonMessageEncoder());
-                        p.addLast(new PeerChannelHandler(router, registry));
+                        
+                        PeerChannelHandler handler = new PeerChannelHandler(router, registry, 
+                                handshakeHandler, connectionPool, discoveryService);
+                        p.addLast(handler);
                     }
                 });
 
@@ -61,6 +75,8 @@ public class P2PServer {
     }
 
     public void stop() {
+        log.info("Stopping P2P server");
+        
         try {
             if (serverChannel != null) serverChannel.close().sync();
         } catch (InterruptedException e) {
@@ -69,5 +85,15 @@ public class P2PServer {
             if (bossGroup != null) bossGroup.shutdownGracefully();
             if (workerGroup != null) workerGroup.shutdownGracefully();
         }
+        
+        log.info("P2P server stopped");
+    }
+    
+    public int getPort() {
+        return port;
+    }
+    
+    public boolean isRunning() {
+        return serverChannel != null && serverChannel.isActive();
     }
 }

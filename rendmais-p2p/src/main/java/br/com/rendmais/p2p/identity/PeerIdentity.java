@@ -18,7 +18,7 @@ public class PeerIdentity {
     private String nodeId;
 
     public PeerIdentity(String address, int port) {
-        this.keyPath = defaultKeyPath(); // agora sem depender do nodeId ainda
+        this.keyPath = defaultKeyPath(port); // Use port to create consistent key path
 
         KeyPair kp;
         if (Files.exists(keyPath)) {
@@ -43,12 +43,13 @@ public class PeerIdentity {
                 .build();
     }
 
-    private static Path defaultKeyPath() {
+    private static Path defaultKeyPath(int port) {
         String home = System.getProperty("user.home");
         Path dir = Paths.get(home, ".rendmais", "keys");
         if (!Files.exists(dir)) {
             try { Files.createDirectories(dir); } catch (Exception ignored) {}
         }
-        return dir.resolve("peer.key"); // agora fixo
+        // Use port to create consistent key path - same port = same identity
+        return dir.resolve("peer_port_" + port + ".key");
     }
 }
