@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class TaskScheduler {
     
@@ -63,15 +64,15 @@ public class TaskScheduler {
         
         ScheduledFuture<?> future = scheduler.schedule(() -> {
             try {
-                log.debug("Executing scheduled task: {} (type: {})", task.getId(), task.getType());
+                log.debug("Executing scheduled task: {} (type: {})", task.getTaskId(), task.getTaskType());
                 taskExecutor.submitTask(task);
             } catch (Exception e) {
-                log.error("Failed to execute scheduled task: {}", task.getId(), e);
+                log.error("Failed to execute scheduled task: {}", task.getTaskId(), e);
             }
         }, delay, unit);
         
         scheduledTasks.put(scheduleId, future);
-        log.info("Scheduled task: {} to run in {} {}", task.getId(), delay, unit);
+        log.info("Scheduled task: {} to run in {} {}", task.getTaskId(), delay, unit);
         
         return scheduleId;
     }
@@ -86,15 +87,15 @@ public class TaskScheduler {
         ScheduledFuture<?> future = scheduler.scheduleAtFixedRate(() -> {
             try {
                 Task recurringTask = createRecurringTask(task);
-                log.debug("Executing recurring task: {} (type: {})", recurringTask.getId(), recurringTask.getType());
+                log.debug("Executing recurring task: {} (type: {})", recurringTask.getTaskId(), recurringTask.getTaskType());
                 taskExecutor.submitTask(recurringTask);
             } catch (Exception e) {
-                log.error("Failed to execute recurring task: {}", task.getId(), e);
+                log.error("Failed to execute recurring task: {}", task.getTaskId(), e);
             }
         }, initialDelay, period, unit);
         
         scheduledTasks.put(scheduleId, future);
-        log.info("Scheduled recurring task: {} at fixed rate: {} {}", task.getId(), period, unit);
+        log.info("Scheduled recurring task: {} at fixed rate: {} {}", task.getTaskId(), period, unit);
         
         return scheduleId;
     }
@@ -109,15 +110,15 @@ public class TaskScheduler {
         ScheduledFuture<?> future = scheduler.scheduleWithFixedDelay(() -> {
             try {
                 Task recurringTask = createRecurringTask(task);
-                log.debug("Executing recurring task: {} (type: {})", recurringTask.getId(), recurringTask.getType());
+                log.debug("Executing recurring task: {} (type: {})", recurringTask.getTaskId(), recurringTask.getTaskType());
                 taskExecutor.submitTask(recurringTask);
             } catch (Exception e) {
-                log.error("Failed to execute recurring task: {}", task.getId(), e);
+                log.error("Failed to execute recurring task: {}", task.getTaskId(), e);
             }
         }, initialDelay, delay, unit);
         
         scheduledTasks.put(scheduleId, future);
-        log.info("Scheduled recurring task: {} with fixed delay: {} {}", task.getId(), delay, unit);
+        log.info("Scheduled recurring task: {} with fixed delay: {} {}", task.getTaskId(), delay, unit);
         
         return scheduleId;
     }
@@ -147,19 +148,19 @@ public class TaskScheduler {
     }
     
     private String generateScheduleId(Task task) {
-        return task.getId() + "-" + System.currentTimeMillis();
+        return task.getTaskId() + "-" + System.currentTimeMillis();
     }
     
     private Task createRecurringTask(Task originalTask) {
         Task recurringTask = new Task();
-        recurringTask.setId(originalTask.getId() + "-" + System.nanoTime());
-        recurringTask.setType(originalTask.getType());
+        recurringTask.setTaskId(originalTask.getTaskId() + "-" + System.nanoTime());
+        recurringTask.setTaskType(originalTask.getTaskType());
         recurringTask.setPluginId(originalTask.getPluginId());
         recurringTask.setPriority(originalTask.getPriority());
         recurringTask.setPayload(originalTask.getPayload());
         recurringTask.setMetadata(originalTask.getMetadata());
         recurringTask.setNodeId(originalTask.getNodeId());
-        recurringTask.setCreatedAt(System.currentTimeMillis());
+        recurringTask.setCreatedAt(java.time.Instant.now());
         recurringTask.setStatus(TaskStatus.PENDING);
         return recurringTask;
     }

@@ -5,6 +5,7 @@ import br.com.rendmais.common.enums.MessageType;
 import br.com.rendmais.p2p.messaging.MessageRouter;
 import br.com.rendmais.task.engine.model.Task;
 import br.com.rendmais.task.engine.model.TaskResult;
+import br.com.rendmais.task.engine.executor.TaskExecutor;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.slf4j.Logger;
@@ -19,11 +20,13 @@ public class TaskP2PIntegration {
     private static final Logger log = LoggerFactory.getLogger(TaskP2PIntegration.class);
     
     private final MessageRouter messageRouter;
+    private final TaskExecutor taskExecutor;
     private final Gson gson;
     private final Map<String, Consumer<TaskResult>> resultCallbacks = new ConcurrentHashMap<>();
     
-    public TaskP2PIntegration(MessageRouter messageRouter) {
+    public TaskP2PIntegration(MessageRouter messageRouter, TaskExecutor taskExecutor) {
         this.messageRouter = messageRouter;
+        this.taskExecutor = taskExecutor;
         this.gson = new GsonBuilder().setPrettyPrinting().create();
         
         registerTaskHandlers();
@@ -41,15 +44,17 @@ public class TaskP2PIntegration {
         try {
             String payload = message.getPayload();
             TaskRequestMessage request = gson.fromJson(payload, TaskRequestMessage.class);
+            String peerId = "unknown";
             
-            log.debug("Received task request from {}: {}", message.getPeerId(), request.getTaskId());
+            log.debug("Received task request from {}: {}", peerId, request.getTaskId());
             
             // Process task request (implementation will be provided by TaskEngine)
             // For now, just log it
-            log.info("Task request received: {} from peer {}", request.getTaskId(), message.getPeerId());
+            log.info("Task request received: {} from peer {}", request.getTaskId(), peerId);
             
         } catch (Exception e) {
-            log.error("Error handling task request from {}", message.getPeerId(), e);
+            String peerId = "unknown";
+            log.error("Error handling task request from {}", peerId, e);
         }
     }
     
@@ -57,8 +62,9 @@ public class TaskP2PIntegration {
         try {
             String payload = message.getPayload();
             TaskResultMessage result = gson.fromJson(payload, TaskResultMessage.class);
+            String peerId = "unknown";
             
-            log.debug("Received task result from {}: {}", message.getPeerId(), result.getTaskId());
+            log.debug("Received task result from {}: {}", peerId, result.getTaskId());
             
             // Notify callback if registered
             Consumer<TaskResult> callback = resultCallbacks.remove(result.getTaskId());
@@ -67,15 +73,16 @@ public class TaskP2PIntegration {
             }
             
         } catch (Exception e) {
-            log.error("Error handling task result from {}", message.getPeerId(), e);
+            String peerId = "unknown";
+            log.error("Error handling task result from {}", peerId, e);
         }
     }
     
     public void broadcastTaskRequest(Task task, String targetPeerId) {
         try {
             TaskRequestMessage request = new TaskRequestMessage(
-                task.getId(),
-                task.getType(),
+                task.getTaskId(),
+                task.getTaskType(),
                 task.getPayload(),
                 task.getMetadata(),
                 task.getPriority().name(),
@@ -87,14 +94,13 @@ public class TaskP2PIntegration {
             SignedMessage message = new SignedMessage();
             message.setType(MessageType.TASK_REQUEST);
             message.setPayload(payload);
-            message.setTimestamp(System.currentTimeMillis());
             
             // The actual broadcasting will be handled by the P2P layer
             // This method just prepares the message
-            log.info("Prepared task request for broadcasting: {} to peer {}", task.getId(), targetPeerId);
+            log.info("Prepared task request for broadcasting: {} to peer {}", task.getTaskId(), targetPeerId);
             
         } catch (Exception e) {
-            log.error("Error broadcasting task request: {}", task.getId(), e);
+            log.error("Error broadcasting task request: {}", task.getTaskId(), e);
         }
     }
     
@@ -114,7 +120,6 @@ public class TaskP2PIntegration {
             SignedMessage message = new SignedMessage();
             message.setType(MessageType.TASK_RESULT);
             message.setPayload(payload);
-            message.setTimestamp(System.currentTimeMillis());
             
             // The actual sending will be handled by the P2P layer
             log.info("Prepared task result for sending: {} to peer {}", result.getTaskId(), targetPeerId);
@@ -210,7 +215,7 @@ public class TaskP2PIntegration {
         public void setNodeId(String nodeId) { this.nodeId = nodeId; }
         
         public TaskResult getTaskResult() {
-            return TaskResult.success(taskId, result);
+            return TaskResult.success(taskId, result, nodeId);
         }
     }
 }

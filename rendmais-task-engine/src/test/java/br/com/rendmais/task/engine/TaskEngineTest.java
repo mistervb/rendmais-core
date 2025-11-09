@@ -6,6 +6,9 @@ import br.com.rendmais.task.engine.model.TaskPriority;
 import br.com.rendmais.task.engine.model.TaskResult;
 import br.com.rendmais.task.engine.plugin.EchoTaskPlugin;
 import br.com.rendmais.task.engine.plugin.MathTaskPlugin;
+import br.com.rendmais.task.engine.exception.TaskException;
+import br.com.rendmais.task.engine.executor.TaskExecutor;
+import br.com.rendmais.task.engine.TaskEngineConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterEach;
@@ -81,9 +84,9 @@ class TaskEngineTest {
         // Wait for result
         TaskResult result = future.get(5, TimeUnit.SECONDS);
         
-        assertThat(result.isSuccess()).isTrue();
+        assertThat(result.isSuccessful()).isTrue();
         assertThat(result.getResult()).isEqualTo("Echo: Hello World");
-        assertThat(result.getTaskId()).isEqualTo(task.getId());
+        assertThat(result.getTaskId()).isEqualTo(task.getTaskId());
     }
     
     @Test
@@ -99,7 +102,7 @@ class TaskEngineTest {
         // Wait for result
         TaskResult result = future.get(5, TimeUnit.SECONDS);
         
-        assertThat(result.isSuccess()).isTrue();
+        assertThat(result.isSuccessful()).isTrue();
         assertThat(result.getResult()).isEqualTo("10"); // 5 + 3 + 2
     }
     
@@ -113,7 +116,7 @@ class TaskEngineTest {
         CompletableFuture<TaskResult> future = taskEngine.submitTask(invalidTask);
         
         TaskResult result = future.get(5, TimeUnit.SECONDS);
-        assertThat(result.isSuccess()).isFalse();
+        assertThat(result.isSuccessful()).isFalse();
     }
     
     @Test
@@ -133,8 +136,8 @@ class TaskEngineTest {
         TaskResult highResult = highFuture.get(5, TimeUnit.SECONDS);
         TaskResult lowResult = lowFuture.get(5, TimeUnit.SECONDS);
         
-        assertThat(highResult.isSuccess()).isTrue();
-        assertThat(lowResult.isSuccess()).isTrue();
+        assertThat(highResult.isSuccessful()).isTrue();
+        assertThat(lowResult.isSuccessful()).isTrue();
     }
     
     @Test
@@ -153,7 +156,7 @@ class TaskEngineTest {
         Thread.sleep(2000);
         
         // Task should be completed
-        assertThat(taskEngine.getTask(task.getId())).isNull(); // Task should be removed from active tasks
+        assertThat(taskEngine.getTask(task.getTaskId())).isNull(); // Task should be removed from active tasks
     }
     
     @Test
@@ -167,10 +170,10 @@ class TaskEngineTest {
         CompletableFuture<TaskResult> future = taskEngine.submitTask(task);
         
         // Cancel task
-        boolean cancelled = taskEngine.cancelTask(task.getId());
+        boolean cancelled = taskEngine.cancelTask(task.getTaskId());
         
         assertThat(cancelled).isTrue();
-        assertThat(taskEngine.getTask(task.getId())).isNull();
+        assertThat(taskEngine.getTask(task.getTaskId())).isNull();
     }
     
     @Test
@@ -184,13 +187,16 @@ class TaskEngineTest {
         assertThat(stats.getRegisteredPlugins()).isEqualTo(1);
         assertThat(stats.getActiveTasks()).isEqualTo(0);
         
-        // Submit a task
+        // Submit a task and wait for completion
         Task task = taskEngine.createTask("ECHO", "Stats Test", Map.of());
-        taskEngine.submitTask(task);
+        CompletableFuture<TaskResult> future = taskEngine.submitTask(task);
         
-        // Stats should update
+        // Wait for task to complete
+        future.get(2, TimeUnit.SECONDS);
+        
+        // Stats should update - task should be completed and removed from active tasks
         stats = taskEngine.getStats();
-        assertThat(stats.getActiveTasks()).isEqualTo(0); // Task completes quickly
+        assertThat(stats.getActiveTasks()).isEqualTo(0); // Task should be completed and removed
     }
     
     @Test
@@ -199,7 +205,9 @@ class TaskEngineTest {
         
         Task task = taskEngine.createTask("ECHO", "Test", Map.of());
         
-        assertThatThrownBy(() -> taskEngine.submitTask(task))
+        CompletableFuture<TaskResult> future = taskEngine.submitTask(task);
+        
+        assertThatThrownBy(() -> future.get(1, TimeUnit.SECONDS))
             .hasCauseInstanceOf(TaskException.class)
             .hasMessageContaining("TaskEngine is not running");
     }

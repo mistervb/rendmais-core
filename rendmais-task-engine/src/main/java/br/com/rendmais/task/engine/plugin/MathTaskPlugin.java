@@ -42,34 +42,24 @@ public class MathTaskPlugin implements TaskPlugin {
     }
     
     @Override
-    public TaskResult execute(Task task) {
-        log.info("Executing {} task: {}", task.getType(), task.getId());
+    public TaskResult execute(Task task) throws Exception {
+        log.info("Executing {} task: {}", task.getTaskType(), task.getTaskId());
         
         try {
-            String payload = task.getPayload();
-            String result;
+            String result = switch (task.getTaskType()) {
+                case "ADD" -> performAddition(task.getPayload());
+                case "MULTIPLY" -> performMultiplication(task.getPayload());
+                case "RANDOM" -> generateRandomNumber(task.getPayload());
+                case "CALCULATE" -> performCalculation(task.getPayload());
+                default -> throw new IllegalArgumentException("Unsupported task type: " + task.getTaskType());
+            };
             
-            switch (task.getType()) {
-                case "ADD":
-                    result = performAddition(payload);
-                    break;
-                case "MULTIPLY":
-                    result = performMultiplication(payload);
-                    break;
-                case "RANDOM":
-                    result = generateRandomNumber(payload);
-                    break;
-                case "CALCULATE":
-                    result = performCalculation(payload);
-                    break;
-                default:
-                    return TaskResult.failure(task.getId(), "Unsupported math operation: " + task.getType());
-            }
-            
-            return TaskResult.success(task.getId(), result);
+            log.info("Task {} completed successfully", task.getTaskId());
+            return TaskResult.success(task.getTaskId(), result, "node-1");
             
         } catch (Exception e) {
-            return TaskResult.failure(task.getId(), "Math task failed: " + e.getMessage(), e);
+            log.error("Task {} failed with error", task.getTaskId(), e);
+            return TaskResult.failure(task.getTaskId(), "Task failed: " + e.getMessage(), "node-1");
         }
     }
     
@@ -132,20 +122,18 @@ public class MathTaskPlugin implements TaskPlugin {
     }
     
     @Override
-    public boolean validateTask(Task task) {
+    public void validateTask(Task task) throws IllegalArgumentException {
         if (task == null || task.getPayload() == null) {
-            log.warn("Invalid task: null task or payload");
-            return false;
+            throw new IllegalArgumentException("Invalid task: null task or payload");
         }
         
         if (task.getPayload().trim().isEmpty()) {
-            log.warn("Invalid task: empty payload");
-            return false;
+            throw new IllegalArgumentException("Invalid task: empty payload");
         }
         
         // Validate based on task type
         try {
-            switch (task.getType()) {
+            switch (task.getTaskType()) {
                 case "ADD":
                 case "MULTIPLY":
                     String[] numbers = task.getPayload().split(",");
@@ -159,14 +147,13 @@ public class MathTaskPlugin implements TaskPlugin {
                 case "CALCULATE":
                     // Basic validation for calculation format
                     if (!task.getPayload().matches("\\d+[+\\*]\\d+")) {
-                        return false;
+                        throw new IllegalArgumentException("Invalid calculation format: " + task.getPayload());
                     }
                     break;
             }
-            return true;
         } catch (NumberFormatException e) {
-            log.warn("Invalid numeric payload for task type {}: {}", task.getType(), task.getPayload());
-            return false;
+            log.warn("Invalid numeric payload for task type {}: {}", task.getTaskType(), task.getPayload());
+            throw new IllegalArgumentException("Invalid numeric payload: " + task.getPayload());
         }
     }
     

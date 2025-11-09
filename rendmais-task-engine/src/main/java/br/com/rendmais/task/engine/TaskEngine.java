@@ -48,7 +48,7 @@ public class TaskEngine {
             TimeUnit.SECONDS
         );
         this.taskScheduler = new TaskScheduler(taskExecutor);
-        this.p2pIntegration = new TaskP2PIntegration(messageRouter);
+        this.p2pIntegration = new TaskP2PIntegration(messageRouter, taskExecutor);
         
         log.info("TaskEngine initialized for node: {}", nodeId);
     }
@@ -106,18 +106,18 @@ public class TaskEngine {
         task.setNodeId(nodeId);
         
         // Store active task
-        activeTasks.put(task.getId(), task);
+        activeTasks.put(task.getTaskId(), task);
         
-        log.info("Submitting task: {} (type: {})", task.getId(), task.getType());
+        log.info("Submitting task: {} (type: {})", task.getTaskId(), task.getTaskType());
         
         // Submit to executor
         CompletableFuture<TaskResult> future = taskExecutor.submitTask(task);
         
         // Remove from active tasks when completed
         future.whenComplete((result, throwable) -> {
-            activeTasks.remove(task.getId());
+            activeTasks.remove(task.getTaskId());
             if (throwable != null) {
-                log.error("Task {} failed", task.getId(), throwable);
+                log.error("Task {} failed", task.getTaskId(), throwable);
             }
         });
         
@@ -130,12 +130,13 @@ public class TaskEngine {
     
     public Task createTask(String taskType, String payload, Map<String, String> metadata, TaskPriority priority) {
         Task task = new Task();
-        task.setType(taskType);
+        task.setTaskId(java.util.UUID.randomUUID().toString());
+        task.setTaskType(taskType);
         task.setPayload(payload);
         task.setMetadata(metadata);
         task.setPriority(priority);
         task.setNodeId(nodeId);
-        task.setStatus(TaskStatus.CREATED);
+        task.setStatus(TaskStatus.PENDING);
         return task;
     }
     

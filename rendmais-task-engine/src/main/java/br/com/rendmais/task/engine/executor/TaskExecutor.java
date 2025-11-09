@@ -10,6 +10,8 @@ import br.com.rendmais.task.engine.registry.TaskRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
+import java.util.Comparator;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -62,7 +64,7 @@ public class TaskExecutor {
         
         // Update task status to pending
         task.setStatus(TaskStatus.PENDING);
-        task.setScheduledAt(System.currentTimeMillis());
+        task.setScheduledAt(Instant.now());
         
         // Create task wrapper
         TaskWrapper taskWrapper = new TaskWrapper(task);
@@ -126,11 +128,11 @@ public class TaskExecutor {
         
         @Override
         public TaskResult call() {
-            long startTime = System.currentTimeMillis();
+            Instant startTime = Instant.now();
             String threadName = Thread.currentThread().getName();
             
             log.debug("Executing task {} (type: {}) on thread {}", 
-                task.getId(), task.getType(), threadName);
+                task.getTaskId(), task.getTaskType(), threadName);
             
             try {
                 // Update task status to running
@@ -138,31 +140,29 @@ public class TaskExecutor {
                 task.setStartedAt(startTime);
                 
                 // Get plugin for task type
-                TaskPlugin plugin = taskRegistry.getPluginForTaskType(task.getType());
+                TaskPlugin plugin = taskRegistry.getPluginForTaskType(task.getTaskType());
                 if (plugin == null) {
-                    throw new TaskException("No plugin found for task type: " + task.getType());
+                    throw new TaskException("No plugin found for task type: " + task.getTaskType());
                 }
                 
                 // Validate task
-                if (!plugin.validateTask(task)) {
-                    throw new TaskException("Task validation failed for task: " + task.getId());
-                }
+                plugin.validateTask(task);
                 
                 // Execute task with timeout
                 TaskResult result = executeWithTimeout(plugin, task);
                 
                 // Update task with result
-                task.setCompletedAt(System.currentTimeMillis());
-                task.setResult(result);
+                task.setCompletedAt(Instant.now());
+                task.setResult(result.getResult());
                 
-                if (result.isSuccess()) {
+                if (result.isSuccessful()) {
                     task.setStatus(TaskStatus.COMPLETED);
                     log.info("Task {} completed successfully in {}ms", 
-                        task.getId(), System.currentTimeMillis() - startTime);
+                        task.getTaskId(), java.time.Duration.between(startTime, Instant.now()).toMillis());
                 } else {
                     task.setStatus(TaskStatus.FAILED);
                     task.setErrorMessage(result.getErrorMessage());
-                    log.warn("Task {} failed: {}", task.getId(), result.getErrorMessage());
+                    log.warn("Task {} failed: {}", task.getTaskId(), result.getErrorMessage());
                 }
                 
                 return result;
@@ -170,19 +170,19 @@ public class TaskExecutor {
             } catch (TimeoutException e) {
                 task.setStatus(TaskStatus.TIMEOUT);
                 task.setErrorMessage("Task execution timed out");
-                task.setCompletedAt(System.currentTimeMillis());
+                task.setCompletedAt(Instant.now());
                 log.error("Task {} timed out after {} {}", 
-                    task.getId(), taskTimeout, timeoutUnit);
+                    task.getTaskId(), taskTimeout, timeoutUnit);
                 
-                return TaskResult.failure(task.getId(), "Task execution timed out", e);
+                return TaskResult.failure(task.getTaskId(), "Task execution timed out", "node-1");
                 
             } catch (Exception e) {
                 task.setStatus(TaskStatus.FAILED);
                 task.setErrorMessage(e.getMessage());
-                task.setCompletedAt(System.currentTimeMillis());
-                log.error("Task {} failed with exception", task.getId(), e);
+                task.setCompletedAt(Instant.now());
+                log.error("Task {} failed with exception", task.getTaskId(), e);
                 
-                return TaskResult.failure(task.getId(), e.getMessage(), e);
+                return TaskResult.failure(task.getTaskId(), e.getMessage(), "node-1");
             }
         }
         
@@ -215,7 +215,7 @@ public class TaskExecutor {
                 }
                 
                 // Earlier scheduled tasks first
-                return Long.compare(t1.getScheduledAt(), t2.getScheduledAt());
+                return t1.getScheduledAt().compareTo(t2.getScheduledAt());
             }
             return 0;
         }
