@@ -38,6 +38,9 @@ public class TaskEngine {
         this.nodeId = nodeId;
         this.config = config;
         
+        // Validate passive income configuration
+        validatePassiveIncomeConfig(config);
+        
         // Initialize components
         this.taskRegistry = new TaskRegistry();
         this.taskExecutor = new TaskExecutor(
@@ -50,7 +53,12 @@ public class TaskEngine {
         this.taskScheduler = new TaskScheduler(taskExecutor);
         this.p2pIntegration = new TaskP2PIntegration(messageRouter, taskExecutor);
         
-        log.info("TaskEngine initialized for node: {}", nodeId);
+        log.info("TaskEngine initialized for node: {} with passive income config: {}", nodeId, config);
+    }
+    
+    // Constructor with default passive income configuration
+    public TaskEngine(String nodeId, MessageRouter messageRouter) {
+        this(nodeId, TaskEngineConfig.passiveIncomeConfig(), messageRouter);
     }
     
     public void start() {
@@ -196,6 +204,33 @@ public class TaskEngine {
     
     public TaskRegistry getTaskRegistry() {
         return taskRegistry;
+    }
+    
+    // Passive income configuration validation
+    private void validatePassiveIncomeConfig(TaskEngineConfig config) {
+        if (config.getCoreThreads() > 2) {
+            log.warn("Core threads ({}) exceeds recommended limit for passive income (2)", config.getCoreThreads());
+        }
+        
+        if (config.getMaxThreads() > 4) {
+            log.warn("Max threads ({}) exceeds recommended limit for passive income (4)", config.getMaxThreads());
+        }
+        
+        if (!config.isWifiOnly()) {
+            log.warn("WiFi-only mode is disabled - may consume mobile data");
+        }
+        
+        if (config.getMaxDailyDataUsage() > 500) {
+            log.warn("Daily data usage limit ({}) exceeds recommended 500MB for passive income", config.getMaxDailyDataUsage());
+        }
+        
+        if (config.getRequestDelay() < 1000) {
+            log.warn("Request delay ({}) is less than 1 second - may overwhelm servers", config.getRequestDelay());
+        }
+        
+        if (!config.isRespectRobotsTxt()) {
+            log.warn("robots.txt compliance is disabled - may violate website terms of service");
+        }
     }
     
     public TaskExecutor getTaskExecutor() {

@@ -28,6 +28,7 @@ public class P2PNodeBootstrap {
     private final PeerIdentity identity;
     @Getter
     private final PeerRegistry registry = new PeerRegistry();
+    @Getter
     private final MessageRouter router = new MessageRouter();
     private final ConnectionPool connectionPool;
     private final PeerDiscoveryService discoveryService;

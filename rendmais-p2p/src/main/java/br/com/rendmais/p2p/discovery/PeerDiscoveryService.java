@@ -28,6 +28,19 @@ public class PeerDiscoveryService {
     private final Set<String> processedAdvertisements = ConcurrentHashMap.newKeySet();
     private volatile boolean running = false;
     
+    // Protected getters for subclasses
+    protected PeerRegistry getPeerRegistry() {
+        return peerRegistry;
+    }
+    
+    protected String getSelfNodeId() {
+        return selfNodeId;
+    }
+    
+    protected PeerAdvertisementSender getAdvertisementSender() {
+        return advertisementSender;
+    }
+    
     public interface PeerAdvertisementSender {
         void sendAdvertisement(String targetNodeId, SignedMessage advertisement);
         void sendDiscoveryRequest(String targetNodeId, SignedMessage discoveryRequest);

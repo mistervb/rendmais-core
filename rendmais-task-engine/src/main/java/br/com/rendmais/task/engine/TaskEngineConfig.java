@@ -5,12 +5,22 @@ import java.util.Map;
 
 public class TaskEngineConfig {
     
-    private int coreThreads = 2;
-    private int maxThreads = 10;
-    private long taskTimeout = 300; // 5 minutes in seconds
-    private int maxRetries = 3;
+    // WiFi-based passive income configuration
+    private int coreThreads = 1; // Reduced to minimize CPU usage
+    private int maxThreads = 2; // Limited for passive operation
+    private long taskTimeout = 1800; // 30 minutes for data collection tasks
+    private int maxRetries = 2; // Reduced retries to save resources
     private boolean enableDistributedExecution = true;
     private boolean enableScheduling = true;
+    
+    // Passive income specific settings
+    private boolean wifiOnly = true; // Only operate on WiFi networks
+    private long minBatteryLevel = 20; // Minimum 20% battery required
+    private long maxDailyDataUsage = 100; // 100MB daily limit
+    private long requestDelay = 2000; // 2 second delay between requests
+    private boolean respectRobotsTxt = true; // Always respect robots.txt
+    private String userAgent = "RendMais-DataCollector/1.0";
+    
     private Map<String, Map<String, String>> pluginConfigs = new HashMap<>();
     
     public TaskEngineConfig() {}
@@ -89,32 +99,91 @@ public class TaskEngineConfig {
         this.pluginConfigs = pluginConfigs;
     }
     
+    // Passive income specific getters and setters
+    public boolean isWifiOnly() {
+        return wifiOnly;
+    }
+    
+    public void setWifiOnly(boolean wifiOnly) {
+        this.wifiOnly = wifiOnly;
+    }
+    
+    public long getMinBatteryLevel() {
+        return minBatteryLevel;
+    }
+    
+    public void setMinBatteryLevel(long minBatteryLevel) {
+        this.minBatteryLevel = minBatteryLevel;
+    }
+    
+    public long getMaxDailyDataUsage() {
+        return maxDailyDataUsage;
+    }
+    
+    public void setMaxDailyDataUsage(long maxDailyDataUsage) {
+        this.maxDailyDataUsage = maxDailyDataUsage;
+    }
+    
+    public long getRequestDelay() {
+        return requestDelay;
+    }
+    
+    public void setRequestDelay(long requestDelay) {
+        this.requestDelay = requestDelay;
+    }
+    
+    public boolean isRespectRobotsTxt() {
+        return respectRobotsTxt;
+    }
+    
+    public void setRespectRobotsTxt(boolean respectRobotsTxt) {
+        this.respectRobotsTxt = respectRobotsTxt;
+    }
+    
+    public String getUserAgent() {
+        return userAgent;
+    }
+    
+    public void setUserAgent(String userAgent) {
+        this.userAgent = userAgent;
+    }
+    
     public static TaskEngineConfig defaultConfig() {
         return new TaskEngineConfig();
     }
     
-    public static TaskEngineConfig highPerformanceConfig() {
+    public static TaskEngineConfig passiveIncomeConfig() {
         TaskEngineConfig config = new TaskEngineConfig();
-        config.setCoreThreads(8);
-        config.setMaxThreads(20);
-        config.setTaskTimeout(600); // 10 minutes
-        config.setMaxRetries(5);
+        config.setCoreThreads(1);
+        config.setMaxThreads(2);
+        config.setTaskTimeout(1800); // 30 minutes for data collection
+        config.setMaxRetries(2);
+        config.setWifiOnly(true);
+        config.setMinBatteryLevel(20);
+        config.setMaxDailyDataUsage(100); // 100MB daily limit
+        config.setRequestDelay(2000); // 2 second delay
+        config.setRespectRobotsTxt(true);
+        config.setUserAgent("RendMais-DataCollector/1.0");
         return config;
     }
     
     public static TaskEngineConfig lightweightConfig() {
         TaskEngineConfig config = new TaskEngineConfig();
         config.setCoreThreads(1);
-        config.setMaxThreads(3);
-        config.setTaskTimeout(60); // 1 minute
+        config.setMaxThreads(2);
+        config.setTaskTimeout(900); // 15 minutes
         config.setMaxRetries(1);
         config.setEnableDistributedExecution(false);
+        config.setWifiOnly(true);
+        config.setMinBatteryLevel(30);
+        config.setMaxDailyDataUsage(50); // 50MB daily limit
+        config.setRequestDelay(3000); // 3 second delay
         return config;
     }
     
     @Override
     public String toString() {
-        return String.format("TaskEngineConfig{threads=%d/%d, timeout=%ds, retries=%d, distributed=%b, scheduling=%b}",
-            coreThreads, maxThreads, taskTimeout, maxRetries, enableDistributedExecution, enableScheduling);
+        return String.format("TaskEngineConfig{threads=%d/%d, timeout=%ds, retries=%d, wifi=%b, battery=%d%%, data=%dMB, delay=%dms}",
+            coreThreads, maxThreads, taskTimeout, maxRetries, wifiOnly, minBatteryLevel, maxDailyDataUsage, requestDelay);
     }
 }
